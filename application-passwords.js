@@ -41,6 +41,10 @@
 				password : response.password
 			} ) );
 
+			response.row.name = response.row.duplicates === 0 ?
+				response.row.name :
+				response.row.name + ' (' + response.row.duplicates + ')';
+
 			$appPassTbody.prepend( tmplAppPassRow( response.row ) );
 
 			$appPassTwrapper.show();

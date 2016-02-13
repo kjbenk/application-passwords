@@ -56,7 +56,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'name':
-				return esc_html( $item['name'] );
+				return $item['duplicates'] == 0 ? esc_html( $item['name'] ) : esc_html( $item['name'] ) . ' (' . $item['duplicates'] . ')';
 			case 'created':
 				if ( empty( $item['created'] ) ) {
 					return '&mdash;';

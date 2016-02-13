@@ -179,11 +179,14 @@ class Application_Passwords {
 	public static function rest_add_application_password( $data ) {
 		list( $new_password, $new_item ) = self::create_new_application_password( $data['user_id'], $data['name'] );
 
+		$passwords = self::get_user_application_passwords( $data['user_id'] );
+
 		// Some tidying before we return it.
-		$new_item['slug']      = self::password_unique_slug( $new_item );
-		$new_item['created']   = date( get_option( 'date_format', 'r' ), $new_item['created'] );
-		$new_item['last_used'] = '—';
-		$new_item['last_ip']   = '—';
+		$new_item['slug']       = self::password_unique_slug( $new_item );
+		$new_item['created']    = date( get_option( 'date_format', 'r' ), $new_item['created'] );
+		$new_item['last_used']  = '—';
+		$new_item['last_ip']    = '—';
+		$new_item['duplicates'] = $passwords[count($passwords) - 1]['duplicates'];
 		unset( $new_item['password'] );
 
 		return array(
@@ -350,10 +353,18 @@ class Application_Passwords {
 		<div class="application-passwords hide-if-no-js" id="application-passwords-section">
 			<h2 id="application-passwords"><?php esc_html_e( 'Application Passwords' ); ?></h2>
 			<p><?php esc_html_e( 'Application passwords allow authentication via non-interactive systems, such as XMLRPC or the REST API, without providing your actual password. Application passwords can be easily revoked. They cannot be used for traditional logins to your website.' ); ?></p>
-			<div class="create-application-password">
-				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" class="input" />
-				<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
-			</div>
+			<table class="form-table create-application-password">
+				<tbody>
+					<tr>
+						<th><?php esc_attr_e( 'Create Password' ); ?></th>
+						<td>
+							<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" class="input" />
+							<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
+							<p class="description"><?php esc_attr_e( 'Password names are used for administrative purposes only and are not used during the authentication process.' ); ?></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
 
 			<div class="application-passwords-list-table-wrapper">
 			<?php
@@ -539,7 +550,19 @@ class Application_Passwords {
 	 * @return array
 	 */
 	public static function get_user_application_passwords( $user_id ) {
-		return get_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, true );
+		$passwords = get_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, true );
+		$duplicates = array();
+
+		foreach ( $passwords as $index => $password ) {
+			if ( isset( $password['name'] ) && array_key_exists( $password['name'], $duplicates ) ) {
+				$duplicates[$password['name']]++;
+			} else {
+				$duplicates[$password['name']] = 0;
+			}
+			$passwords[$index]['duplicates'] = $duplicates[$password['name']];
+		}
+
+		return $passwords;
 	}
 
 	/**
