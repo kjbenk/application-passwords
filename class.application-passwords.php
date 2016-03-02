@@ -15,6 +15,13 @@ class Application_Passwords {
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
 
 	/**
+	 * The length of generated application passwords.
+	 *
+	 * @type integer
+	 */
+	const PW_LENGTH = 24;
+
+	/**
 	 * Add various hooks.
 	 *
 	 * @since 0.1-dev
@@ -22,33 +29,12 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 */
-	 public static function add_hooks($file) {
-		add_filter( 'plugin_action_links_' . $file,		array( __CLASS__, 'add_action_links' ) );
- 		add_filter( 'authenticate',                		array( __CLASS__, 'authenticate' ), 10, 3 );
- 		add_action( 'show_user_profile',           		array( __CLASS__, 'show_user_profile' ) );
- 		add_action( 'rest_api_init',               		array( __CLASS__, 'rest_api_init' ) );
- 		add_filter( 'determine_current_user',      		array( __CLASS__, 'rest_api_auth_handler' ), 20 );
- 		add_filter( 'wp_rest_server_class',        		array( __CLASS__, 'wp_rest_server_class' ) );
-	}
-
-	/**
-	 * Add a new plugin link to the Application passwords.  Without this link it is hard to find out where to go
-	 * to create these passwords.
-	 *
-	 * @since 0.1-dev
-	 *
-	 * @access public
-	 * @static
-	 * @param mixed $links
-	 * @return array
-	 */
-	public static function add_action_links($links) {
-
-		$password_link = array(
-			'<a href="' . admin_url( 'profile.php#application-passwords' ) . '">' . __('Passwords') . '</a>',
-		);
-
-		return array_merge( $links, $password_link );
+	 public static function add_hooks() {
+ 		add_filter( 'authenticate',		array( __CLASS__, 'authenticate' ), 10, 3 );
+ 		add_action( 'show_user_profile',	array( __CLASS__, 'show_user_profile' ) );
+ 		add_action( 'rest_api_init',		array( __CLASS__, 'rest_api_init' ) );
+ 		add_filter( 'determine_current_user',	array( __CLASS__, 'rest_api_auth_handler' ), 20 );
+ 		add_filter( 'wp_rest_server_class',	array( __CLASS__, 'wp_rest_server_class' ) );
 	}
 
 	/**
@@ -388,19 +374,19 @@ class Application_Passwords {
 
 		<script type="text/html" id="tmpl-application-password-row">
 			<tr data-slug="{{ data.slug }}">
-				<td class="name column-name has-row-actions column-primary" data-colname="<?php echo esc_attr( 'Name' ); ?>">
+				<td class="name column-name has-row-actions column-primary" data-colname="<?php esc_attr_e( 'Name' ); ?>">
 					{{ data.name }}
 				</td>
-				<td class="created column-created" data-colname="<?php echo esc_attr( 'Created' ); ?>">
+				<td class="created column-created" data-colname="<?php esc_attr_e( 'Created' ); ?>">
 					{{ data.created }}
 				</td>
-				<td class="last_used column-last_used" data-colname="<?php echo esc_attr( 'Last Used' ); ?>">
+				<td class="last_used column-last_used" data-colname="<?php esc_attr_e( 'Last Used' ); ?>">
 					{{ data.last_used }}
 				</td>
-				<td class="last_ip column-last_ip" data-colname="<?php echo esc_attr( 'Last IP' ); ?>">
+				<td class="last_ip column-last_ip" data-colname="<?php esc_attr_e( 'Last IP' ); ?>">
 					{{ data.last_ip }}
 				</td>
-				<td class="revoke column-revoke" data-colname="<?php echo esc_attr( 'Revoke' ); ?>">
+				<td class="revoke column-revoke" data-colname="<?php esc_attr_e( 'Revoke' ); ?>">
 					<input type="submit" name="revoke-application-password" class="button delete" value="<?php esc_attr_e( 'Revoke' ); ?>">
 				</td>
 			</tr>
@@ -421,7 +407,7 @@ class Application_Passwords {
 	 * @return array          The first key in the array is the new password, the second is its row in the table.
 	 */
 	public static function create_new_application_password( $user_id, $name ) {
-		$new_password    = wp_generate_password( 16, false );
+		$new_password    = wp_generate_password( SELF::PW_LENGTH, false );
 		$hashed_password = wp_hash_password( $new_password );
 
 		$new_item = array(
@@ -512,7 +498,7 @@ class Application_Passwords {
 	}
 
 	/**
-	 * Sanitize and then split a passowrd into smaller chunks.
+	 * Sanitize and then split a password into smaller chunks.
 	 *
 	 * @since 0.1-dev
 	 *
@@ -539,7 +525,11 @@ class Application_Passwords {
 	 * @return array
 	 */
 	public static function get_user_application_passwords( $user_id ) {
-		return get_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, true );
+		$passwords = get_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, true );
+		if ( ! is_array( $passwords ) ) {
+			return array();
+		}
+		return $passwords;
 	}
 
 	/**
